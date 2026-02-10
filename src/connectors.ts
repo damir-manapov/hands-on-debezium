@@ -32,8 +32,52 @@ export const ELASTICSEARCH_SINK_CONNECTOR: ConnectorConfig = {
   },
 };
 
+export const ICEBERG_SINK_CONNECTOR: ConnectorConfig = {
+  name: 'iceberg-sink',
+  config: {
+    // Official Apache Iceberg Kafka Connect sink
+    'connector.class': 'org.apache.iceberg.connect.IcebergSinkConnector',
+    'tasks.max': '1',
+
+    // Subscribe to Debezium CDC topics
+    'topics.regex': 'dbz\\.public\\.(users|orders)',
+
+    // Iceberg tables configuration
+    'iceberg.tables': 'cdc.users,cdc.orders',
+    'iceberg.tables.route-field': '_cdc.target',
+    'iceberg.tables.auto-create-enabled': 'true',
+    'iceberg.tables.evolve-schema-enabled': 'true',
+
+    // Route CDC topics to Iceberg tables
+    'iceberg.table.cdc.users.route-regex': '.*users$',
+    'iceberg.table.cdc.orders.route-regex': '.*orders$',
+
+    // Nessie catalog configuration
+    'iceberg.catalog.catalog-impl': 'org.apache.iceberg.nessie.NessieCatalog',
+    'iceberg.catalog.uri': 'http://nessie:19120/api/v2',
+    'iceberg.catalog.ref': 'main',
+    'iceberg.catalog.warehouse': 's3://warehouse',
+    'iceberg.catalog.io-impl': 'org.apache.iceberg.aws.s3.S3FileIO',
+    'iceberg.catalog.s3.endpoint': 'http://minio:9000',
+    'iceberg.catalog.s3.access-key-id': 'minioadmin',
+    'iceberg.catalog.s3.secret-access-key': 'minioadmin',
+    'iceberg.catalog.s3.path-style-access': 'true',
+
+    // Debezium transform to extract CDC fields
+    transforms: 'debezium',
+    'transforms.debezium.type': 'org.apache.iceberg.connect.transforms.DebeziumTransform',
+
+    // Converters
+    'key.converter': 'org.apache.kafka.connect.json.JsonConverter',
+    'key.converter.schemas.enable': 'false',
+    'value.converter': 'org.apache.kafka.connect.json.JsonConverter',
+    'value.converter.schemas.enable': 'false',
+  },
+};
+
 export const DEBEZIUM_URL = 'http://localhost:8083';
 export const ELASTICSEARCH_SINK_URL = 'http://localhost:8084';
+export const ICEBERG_SINK_URL = 'http://localhost:8085';
 
 export async function createConnector(
   baseUrl: string,

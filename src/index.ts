@@ -6,6 +6,8 @@ export {
   ELASTICSEARCH_SINK_CONNECTOR,
   ELASTICSEARCH_SINK_URL,
   getConnectorStatus,
+  ICEBERG_SINK_CONNECTOR,
+  ICEBERG_SINK_URL,
   POSTGRES_SOURCE_CONNECTOR,
   waitForConnectorRunning,
 } from './connectors.js';

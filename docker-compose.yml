@@ -16,6 +16,8 @@ services:
         condition: service_healthy
       elasticsearch:
         condition: service_healthy
+      iceberg-sink:
+        condition: service_healthy
     command: ["echo", "All services are ready"]
 
   postgres:
@@ -44,6 +46,7 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      KAFKA_OPTS: "-Dzookeeper.4lw.commands.whitelist=ruok,stat"
     volumes:
       - zookeeper-data:/var/lib/zookeeper/data
       - zookeeper-logs:/var/lib/zookeeper/log
@@ -78,7 +81,7 @@ services:
       retries: 10
 
   debezium:
-    image: debezium/connect:3.0.2.Final
+    image: debezium/connect:3.0.0.Final
     depends_on:
       kafka:
         condition: service_healthy
@@ -184,7 +187,7 @@ services:
       retries: 20
 
   elasticsearch-sink:
-    image: debezium/connect:3.0.2.Final
+    image: debezium/connect:3.0.0.Final
     depends_on:
       kafka:
         condition: service_healthy
@@ -201,6 +204,41 @@ services:
       CONFIG_STORAGE_REPLICATION_FACTOR: 1
       OFFSET_STORAGE_REPLICATION_FACTOR: 1
       STATUS_STORAGE_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/connectors || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  iceberg-sink:
+    build:
+      context: ./compose/iceberg-sink
+      dockerfile: Dockerfile
+    depends_on:
+      kafka:
+        condition: service_healthy
+      nessie:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "8085:8083"
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka:29092
+      CONNECT_REST_ADVERTISED_HOST_NAME: iceberg-sink
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: iceberg-sink
+      CONNECT_CONFIG_STORAGE_TOPIC: iceberg_sink_configs
+      CONNECT_OFFSET_STORAGE_TOPIC: iceberg_sink_offsets
+      CONNECT_STATUS_STORAGE_TOPIC: iceberg_sink_statuses
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8083/connectors || exit 1"]
       interval: 5s

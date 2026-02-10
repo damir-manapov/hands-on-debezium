@@ -51,9 +51,11 @@ describe('PostgreSQL to Trino/Iceberg sync', () => {
       const firstUser = users[0];
       expect(firstUser).toBeDefined();
 
+      // biome-ignore lint/style/noNonNullAssertion: we just verified it's defined
       const [order] = await insertOrder(sql, firstUser!.id, 99.99, 'pending');
 
       expect(order).toBeDefined();
+      // biome-ignore lint/style/noNonNullAssertion: we just verified it's defined
       expect(order?.user_id).toBe(firstUser!.id);
       expect(order?.total_amount).toBe('99.99');
     });

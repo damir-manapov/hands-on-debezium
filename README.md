@@ -40,24 +40,29 @@ A hands-on project for learning Debezium Change Data Capture (CDC) - syncing Pos
    pnpm install
    ```
 
-2. Start all services:
+2. Pull Docker images:
    ```sh
-   pnpm run up
+   pnpm run compose:pull
    ```
 
-3. Run tests:
+3. Start all services:
+   ```sh
+   pnpm run compose:up
+   ```
+
+4. Run tests:
    ```sh
    pnpm test
    ```
 
-4. Stop services:
+5. Stop services:
    ```sh
-   pnpm run down
+   pnpm run compose:down
    ```
 
-5. Reset (remove volumes):
+6. Reset (remove volumes):
    ```sh
-   pnpm run reset
+   pnpm run compose:reset
    ```
 
 ## Services Endpoints
