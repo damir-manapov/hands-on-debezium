@@ -30,7 +30,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./compose/postgres-init:/docker-entrypoint-initdb.d:ro
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
     command:
       - postgres
       - -c
@@ -163,7 +163,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./compose/trino/catalog:/etc/trino/catalog:ro
+      - ./trino/catalog:/etc/trino/catalog:ro
     healthcheck:
       test: ["CMD-SHELL", "trino --execute 'SELECT 1'"]
       interval: 5s
@@ -212,7 +212,7 @@ services:
 
   iceberg-sink:
     build:
-      context: ./compose/iceberg-sink
+      context: ./iceberg-sink
       dockerfile: Dockerfile
     depends_on:
       kafka:
