@@ -53,12 +53,19 @@ export const REDIS_SINK_CONNECTOR: ConnectorConfig = {
     'redis.database': '0',
     topics: 'dbz.public.users,dbz.public.orders',
     'tasks.max': '1',
-    // This connector only accepts String or byte[] for both key and value.
-    // StringConverter reads raw Kafka bytes as UTF-8 strings, which is what we need
-    // since Debezium produces JSON-serialized keys and values.
-    // The Redis key will be the Debezium key JSON (contains the PG id),
-    // and the value will be the full Debezium envelope JSON (contains before/after/source).
-    'key.converter': 'org.apache.kafka.connect.storage.StringConverter',
+    // Transform chain: extract PG id from Debezium struct key → cast to string
+    // This gives clean Redis keys like "123" for direct GET lookups.
+    transforms: 'extractKey,castKey',
+    'transforms.extractKey.type': 'org.apache.kafka.connect.transforms.ExtractField$Key',
+    'transforms.extractKey.field': 'id',
+    'transforms.castKey.type': 'org.apache.kafka.connect.transforms.Cast$Key',
+    'transforms.castKey.spec': 'string',
+    // Key: JsonConverter (schemas.enable=true) to deserialize Debezium struct key,
+    // so ExtractField$Key can pull the 'id' field from the Struct.
+    'key.converter': 'org.apache.kafka.connect.json.JsonConverter',
+    'key.converter.schemas.enable': 'true',
+    // Value: StringConverter — the connector only accepts String or byte[],
+    // so value is stored as raw Debezium envelope JSON.
     'value.converter': 'org.apache.kafka.connect.storage.StringConverter',
   },
 };

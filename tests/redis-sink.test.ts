@@ -14,15 +14,6 @@ import {
 } from '../src/index.js';
 
 /**
- * Debezium key JSON: {"schema":{...},"payload":{"id":123}}
- * Extract the id from the payload.
- */
-function extractIdFromKey(key: string): number {
-  const parsed = JSON.parse(key) as { payload: { id: number } };
-  return parsed.payload.id;
-}
-
-/**
  * Debezium envelope value JSON: {"schema":{...},"payload":{"before":...,"after":{...},...}}
  * Extract the 'after' record from the payload.
  */
@@ -32,8 +23,9 @@ function extractAfterFromValue(value: string): Record<string, unknown> {
 }
 
 /**
- * Poll Redis for a key whose Debezium payload.id matches the given id.
- * Returns the raw value string if found, null if timed out.
+ * Poll Redis by direct key lookup (O(1) GET) until the key exists.
+ * The connector uses ExtractField$Key + Cast$Key so Redis keys are plain
+ * stringified PG ids like "123".
  */
 async function pollRedisForId(
   redis: Redis,
@@ -41,21 +33,11 @@ async function pollRedisForId(
   maxWaitMs: number,
   pollIntervalMs = 2000
 ): Promise<string | null> {
+  const key = String(targetId);
   const startTime = Date.now();
   while (Date.now() - startTime < maxWaitMs) {
-    const keys = await redis.keys('*');
-    for (const key of keys) {
-      // Skip internal Kafka offset tracking keys
-      if (key.startsWith('__kafka.offset.')) continue;
-      try {
-        const id = extractIdFromKey(key);
-        if (id === targetId) {
-          return redis.get(key);
-        }
-      } catch {
-        // Not a valid Debezium key, skip
-      }
-    }
+    const value = await redis.get(key);
+    if (value !== null) return value;
     await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
   }
   return null;
@@ -64,6 +46,7 @@ async function pollRedisForId(
 describe('Redis Sink Connector', () => {
   let sql: postgres.Sql;
   let redis: Redis;
+  let warmupUserId: number;
 
   beforeAll(async () => {
     sql = createPostgresClient();
@@ -87,6 +70,8 @@ describe('Redis Sink Connector', () => {
     if (!warmupId) {
       throw new Error('Failed to insert warmup user');
     }
+
+    warmupUserId = warmupId;
 
     // Poll for the warmup record in Redis
     const warmupValue = await pollRedisForId(redis, warmupId, 120000);
@@ -116,32 +101,24 @@ describe('Redis Sink Connector', () => {
 
   describe('CDC to Redis flow', () => {
     it('should store Debezium envelope with correct structure', async () => {
-      // Get any non-internal key from Redis
-      const keys = (await redis.keys('*')).filter((k) => !k.startsWith('__kafka.offset.'));
-      expect(keys.length).toBeGreaterThan(0);
-
-      const value = await redis.get(keys[0]!);
+      // Direct O(1) lookup by the warmup user's id
+      const value = await redis.get(String(warmupUserId));
       expect(value).toBeDefined();
 
       // Value should be the full Debezium envelope with payload.after containing our fields
-      const after = extractAfterFromValue(value!);
+      const after = extractAfterFromValue(value as string);
       expect(after).toHaveProperty('id');
       expect(after).toHaveProperty('email');
       expect(after).toHaveProperty('name');
     });
 
-    it('should use Debezium key containing PostgreSQL id', async () => {
-      // Get a non-internal key and verify it contains the document's id
-      const keys = (await redis.keys('*')).filter((k) => !k.startsWith('__kafka.offset.'));
-      expect(keys.length).toBeGreaterThan(0);
+    it('should use PostgreSQL id as Redis key for direct lookups', async () => {
+      // Direct GET by id — this is the whole point of ExtractField + Cast transforms
+      const value = await redis.get(String(warmupUserId));
+      expect(value).toBeDefined();
 
-      const key = keys[0]!;
-      const keyId = extractIdFromKey(key);
-      const value = await redis.get(key);
-      const after = extractAfterFromValue(value!);
-
-      // The id extracted from the Debezium key should match the after payload's id
-      expect(keyId).toBe(after['id']);
+      const after = extractAfterFromValue(value as string);
+      expect(after['id']).toBe(warmupUserId);
     });
 
     it('should sync new PostgreSQL changes to Redis', async () => {
@@ -151,30 +128,27 @@ describe('Redis Sink Connector', () => {
       const userId = user?.id;
       expect(userId).toBeDefined();
 
-      // Poll for the new record in Redis by its PG id
-      const value = await pollRedisForId(redis, userId!, 90000);
+      // Poll by direct GET — no KEYS scan needed
+      const value = await pollRedisForId(redis, userId as number, 90000);
       expect(value).not.toBeNull();
 
-      const after = extractAfterFromValue(value!);
+      const after = extractAfterFromValue(value as string);
       expect(after['email']).toBe(email);
       expect(after['name']).toBe('Redis Sync Test User');
     });
 
     it('should maintain data consistency between PostgreSQL and Redis', async () => {
-      // Pick a non-internal key from Redis and verify it matches the PG row
-      const keys = (await redis.keys('*')).filter((k) => !k.startsWith('__kafka.offset.'));
-      expect(keys.length).toBeGreaterThan(0);
-
-      const key = keys[0]!;
-      const value = await redis.get(key);
+      // Direct O(1) lookup by warmup user id
+      const value = await redis.get(String(warmupUserId));
       expect(value).toBeDefined();
 
-      const after = extractAfterFromValue(value!);
-      const docId = after['id'] as number;
-      const pgRows = await sql`SELECT id, email, name FROM users WHERE id = ${docId}`;
+      const after = extractAfterFromValue(value as string);
+
+      // Verify against PostgreSQL
+      const pgRows = await sql`SELECT id, email, name FROM users WHERE id = ${warmupUserId}`;
       expect(pgRows).toHaveLength(1);
-      expect(pgRows[0]?.['email']).toBe(after['email']);
-      expect(pgRows[0]?.['name']).toBe(after['name']);
+      expect(after['email']).toBe(pgRows[0]?.['email']);
+      expect(after['name']).toBe(pgRows[0]?.['name']);
     });
   });
 });
