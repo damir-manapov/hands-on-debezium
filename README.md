@@ -5,19 +5,19 @@ A hands-on project for learning Debezium Change Data Capture (CDC) - syncing Pos
 ## Architecture
 
 ```
-                                                    ┌──────────────┐     ┌──────────────┐
-                                               ┌───▶│ Iceberg Sink │────▶│ Trino/Iceberg│
-                                               │    │ (Kafka Connect)│    │  (Data Lake) │
-┌───────────┐     ┌─────────┐     ┌─────────┐  │    └──────────────┘     └──────────────┘
+                                                    ┌───────────────┐     ┌──────────────┐
+                                               ┌───▶│  Iceberg Sink │────▶│ Trino/Iceberg│
+                                               │    │(Kafka Connect)│     │  (Data Lake) │
+┌───────────┐     ┌─────────┐     ┌─────────┐  │    └───────────────┘     └──────────────┘
 │ PostgreSQL│────▶│ Debezium│────▶│  Kafka  │──┤           │
-│   (CDC)   │     │ Connect │     │         │  │    ┌──────┴───────┐
+│   (CDC)   │     │ Connect │     │         │  │    ┌──────┴────────┐
 └───────────┘     └─────────┘     └─────────┘  │    │ MinIO + Nessie│
-                                               │    └──────────────┘
+                                               │    └───────────────┘
                                                │
-                                               └───▶┌───────────────┐
-                                                    │ Elasticsearch │
-                                                    │   (Search)    │
-                                                    └───────────────┘
+                                               │    ┌───────────────┐     ┌───────────────┐
+                                               └───▶│    ES Sink    │────▶│ Elasticsearch │
+                                                    │(Kafka Connect)│     │   (Search)    │
+                                                    └───────────────┘     └───────────────┘
 ```
 
 **Components:**

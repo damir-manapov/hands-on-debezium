@@ -6,7 +6,6 @@ import {
   createElasticsearchClient,
   createPostgresClient,
   DEBEZIUM_URL,
-  deleteConnector,
   POSTGRES_SOURCE_CONNECTOR,
   waitForConnectorRunning,
 } from '../src/index.js';
