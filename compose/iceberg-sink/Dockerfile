@@ -7,7 +7,7 @@
 #   echo "1.9.2" > iceberg/version.txt  # Required for version detection without .git
 #   mkdir -p gradle && curl -L -O https://services.gradle.org/distributions/gradle-8.13-bin.zip
 #
-FROM eclipse-temurin:17-jdk AS builder
+FROM eclipse-temurin:17.0.18_8-jdk AS builder
 
 ARG ICEBERG_VERSION=1.9.2
 ARG GRADLE_VERSION=8.13
