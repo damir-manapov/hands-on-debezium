@@ -5,25 +5,29 @@ A hands-on project for learning Debezium Change Data Capture (CDC) - syncing Pos
 ## Architecture
 
 ```
-┌───────────┐     ┌─────────┐     ┌─────────┐     ┌──────────────┐
-│ PostgreSQL│────▶│ Debezium│────▶│  Kafka  │────▶│ Trino/Iceberg│
-│   (CDC)   │     │ Connect │     │         │     │  (Data Lake) │
-└───────────┘     └─────────┘     └─────────┘     └──────────────┘
-                                       │
-                                       ▼
-                               ┌───────────────┐
-                               │ Elasticsearch │
-                               │   (Search)    │
-                               └───────────────┘
+                                                    ┌──────────────┐     ┌──────────────┐
+                                               ┌───▶│ Iceberg Sink │────▶│ Trino/Iceberg│
+                                               │    │ (Kafka Connect)│    │  (Data Lake) │
+┌───────────┐     ┌─────────┐     ┌─────────┐  │    └──────────────┘     └──────────────┘
+│ PostgreSQL│────▶│ Debezium│────▶│  Kafka  │──┤           │
+│   (CDC)   │     │ Connect │     │         │  │    ┌──────┴───────┐
+└───────────┘     └─────────┘     └─────────┘  │    │ MinIO + Nessie│
+                                               │    └──────────────┘
+                                               │
+                                               └───▶┌───────────────┐
+                                                    │ Elasticsearch │
+                                                    │   (Search)    │
+                                                    └───────────────┘
 ```
 
 **Components:**
 - **PostgreSQL** - Source database with CDC enabled (WAL logical replication)
 - **Debezium Connect** - CDC connector capturing changes from PostgreSQL
 - **Kafka** - Message broker for streaming CDC events
-- **MinIO** - S3-compatible object storage for Iceberg data
+- **Iceberg Sink** - Apache Iceberg Kafka Connect sink (built from source, 1.9.2) with DebeziumTransform
+- **MinIO** - S3-compatible object storage for Iceberg data files
 - **Nessie** - Iceberg catalog with Git-like versioning (uses PostgreSQL for metadata)
-- **Trino** - Distributed SQL query engine for analytics
+- **Trino** - Distributed SQL query engine for analytics over Iceberg tables
 - **Elasticsearch** - Search and analytics engine
 
 ## Prerequisites
@@ -72,6 +76,7 @@ A hands-on project for learning Debezium Change Data Capture (CDC) - syncing Pos
 | PostgreSQL    | 5432  | `localhost:5432`             |
 | Kafka         | 9092  | `localhost:9092`             |
 | Debezium      | 8083  | `http://localhost:8083`      |
+| Iceberg Sink  | 8085  | `http://localhost:8085`      |
 | MinIO Console | 9001  | `http://localhost:9001`      |
 | MinIO API     | 9000  | `http://localhost:9000`      |
 | Nessie        | 19120 | `http://localhost:19120`     |
@@ -82,20 +87,28 @@ A hands-on project for learning Debezium Change Data Capture (CDC) - syncing Pos
 
 ```
 ├── compose/
+│   ├── docker-compose.yml # Docker Compose configuration
+│   ├── iceberg-sink/      # Iceberg sink connector (built from source)
 │   ├── postgres-init/     # PostgreSQL initialization scripts
 │   └── trino/
 │       └── catalog/       # Trino catalog configurations
+├── docs/
+│   └── ICEBERG_SINK_TROUBLESHOOTING.md  # Iceberg sink deep-dive
 ├── src/
-│   ├── connectors.ts      # Debezium connector management
+│   ├── connectors.ts      # Connector configs & management
 │   ├── db.ts              # PostgreSQL client utilities
 │   ├── elasticsearch.ts   # Elasticsearch client utilities
 │   ├── trino.ts           # Trino query utilities
 │   └── index.ts           # Main exports
-├── tests/
-│   ├── debezium.test.ts   # Debezium CDC tests
-│   └── trino-iceberg.test.ts  # Trino/Iceberg integration tests
-└── docker-compose.yml     # Docker Compose configuration
+└── tests/
+    ├── debezium.test.ts       # Debezium CDC tests
+    ├── iceberg-sink.test.ts   # Iceberg sink CDC pipeline tests
+    └── trino-iceberg.test.ts  # Trino/Iceberg integration tests
 ```
+
+## Documentation
+
+- [Iceberg Sink Troubleshooting](docs/ICEBERG_SINK_TROUBLESHOOTING.md) — lessons learned integrating the Iceberg Kafka Connect sink with Debezium, Nessie, and Trino (control topic protocol, cold start timing, routing, debugging)
 
 ## Development
 

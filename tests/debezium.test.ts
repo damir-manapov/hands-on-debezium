@@ -21,12 +21,9 @@ describe('Debezium CDC', () => {
   });
 
   afterAll(async () => {
-    // Cleanup: delete connector if exists
-    try {
-      await deleteConnector(DEBEZIUM_URL, POSTGRES_SOURCE_CONNECTOR.name);
-    } catch {
-      // Ignore if doesn't exist
-    }
+    // Note: We don't delete the postgres-source connector here to avoid race conditions
+    // with parallel tests (e.g., iceberg-sink.test.ts depends on this connector).
+    // Connectors are idempotent - they will be reused or recreated on next test run.
     await sql.end();
     await esClient.close();
   });

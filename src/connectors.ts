@@ -42,6 +42,9 @@ export const ICEBERG_SINK_CONNECTOR: ConnectorConfig = {
     // Subscribe to Debezium CDC topics
     'topics.regex': 'dbz\\.public\\.(users|orders)',
 
+    // Start from earliest offset to capture existing messages
+    'consumer.override.auto.offset.reset': 'earliest',
+
     // Iceberg tables configuration
     'iceberg.tables': 'cdc.users,cdc.orders',
     'iceberg.tables.route-field': '_cdc.target',
@@ -51,6 +54,10 @@ export const ICEBERG_SINK_CONNECTOR: ConnectorConfig = {
     // Route CDC topics to Iceberg tables
     'iceberg.table.cdc.users.route-regex': '.*users$',
     'iceberg.table.cdc.orders.route-regex': '.*orders$',
+
+    // Control topic configuration - commit every 10 seconds for faster testing
+    'iceberg.control.commit.interval-ms': '10000',
+    'iceberg.control.commit.timeout-ms': '60000',
 
     // Nessie catalog configuration
     'iceberg.catalog.catalog-impl': 'org.apache.iceberg.nessie.NessieCatalog',
@@ -62,16 +69,18 @@ export const ICEBERG_SINK_CONNECTOR: ConnectorConfig = {
     'iceberg.catalog.s3.access-key-id': 'minioadmin',
     'iceberg.catalog.s3.secret-access-key': 'minioadmin',
     'iceberg.catalog.s3.path-style-access': 'true',
+    'iceberg.catalog.s3.region': 'us-east-1',
+    'iceberg.catalog.client.region': 'us-east-1',
 
     // Debezium transform to extract CDC fields
     transforms: 'debezium',
     'transforms.debezium.type': 'org.apache.iceberg.connect.transforms.DebeziumTransform',
 
-    // Converters
+    // Converters - schemas.enable must be true to match Debezium output format
     'key.converter': 'org.apache.kafka.connect.json.JsonConverter',
-    'key.converter.schemas.enable': 'false',
+    'key.converter.schemas.enable': 'true',
     'value.converter': 'org.apache.kafka.connect.json.JsonConverter',
-    'value.converter.schemas.enable': 'false',
+    'value.converter.schemas.enable': 'true',
   },
 };
 
