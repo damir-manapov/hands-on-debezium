@@ -101,7 +101,8 @@ A hands-on project for learning Debezium Change Data Capture (CDC) - syncing Pos
 │   ├── trino.ts           # Trino query utilities
 │   └── index.ts           # Main exports
 └── tests/
-    ├── debezium.test.ts       # Debezium CDC tests
+    ├── debezium.test.ts       # Debezium connector lifecycle tests
+    ├── elasticsearch.test.ts  # Elasticsearch operations tests
     ├── iceberg-sink.test.ts   # Iceberg sink CDC pipeline tests
     └── trino-iceberg.test.ts  # Trino/Iceberg integration tests
 ```
