@@ -47,6 +47,7 @@ describe('Redis Sink Connector', () => {
   let sql: postgres.Sql;
   let redis: Redis;
   let warmupUserId: number;
+  let warmupUserEmail: string;
 
   beforeAll(async () => {
     sql = createPostgresClient();
@@ -72,6 +73,7 @@ describe('Redis Sink Connector', () => {
     }
 
     warmupUserId = warmupId;
+    warmupUserEmail = warmupEmail;
 
     // Poll for the warmup record in Redis
     const warmupValue = await pollRedisForId(redis, warmupId, 120000);
@@ -119,6 +121,7 @@ describe('Redis Sink Connector', () => {
 
       const after = extractAfterFromValue(value as string);
       expect(after['id']).toBe(warmupUserId);
+      expect(after['email']).toBe(warmupUserEmail);
     });
 
     it('should sync new PostgreSQL changes to Redis', async () => {
