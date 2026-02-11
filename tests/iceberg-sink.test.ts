@@ -111,14 +111,13 @@ describe('Iceberg Sink Connector', () => {
       await insertUser(sql, email, 'Iceberg Test User');
 
       // Wait for CDC pipeline: PostgreSQL → Debezium → Kafka → Iceberg Sink
-      // The pipeline is already warm from beforeAll, so this should be faster.
-      // However, we still need to wait for:
-      //  - Debezium to capture the change (~1-2s)
-      //  - Kafka Connect data poll to return (~up to 60s when idle)
-      //  - Iceberg commit cycle (~10s interval + worker processing)
+      // The pipeline is already warm from beforeAll, but the Kafka Connect data
+      // poll has a 60s timeout when idle. In the worst case, the record arrives
+      // right after a poll, waits 60s for the next poll, then the commit cycle
+      // needs another 60s round to pick it up — totaling ~120s worst-case.
       const found = await pollTrinoUntilFound(
         `SELECT email FROM iceberg.cdc.users WHERE email = '${email}'`,
-        90000 // 90 seconds for a warm pipeline
+        150000 // 150 seconds: covers worst-case 120s + 30s buffer
       );
 
       expect(found).toBe(true);
