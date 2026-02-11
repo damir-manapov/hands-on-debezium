@@ -18,6 +18,8 @@ services:
         condition: service_healthy
       iceberg-sink:
         condition: service_healthy
+      elasticsearch-sink:
+        condition: service_healthy
     command: ["echo", "All services are ready"]
 
   postgres:
@@ -158,7 +160,7 @@ services:
       retries: 20
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:9.3.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
     ports:
       - "9200:9200"
     environment:
@@ -174,7 +176,9 @@ services:
       retries: 20
 
   elasticsearch-sink:
-    image: debezium/connect:3.0.0.Final
+    build:
+      context: ./elasticsearch-sink
+      dockerfile: Dockerfile
     depends_on:
       kafka:
         condition: service_healthy

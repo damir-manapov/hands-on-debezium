@@ -8,7 +8,7 @@ describe('Elasticsearch operations', () => {
   const testIndices = ['test_index', 'test_mapped', 'test_temp', 'test_documents'];
 
   async function deleteTestIndices(): Promise<void> {
-    // ES 9.x blocks wildcard destructive operations, delete indices explicitly
+    // Explicitly delete each test index (wildcard deletion may be blocked)
     await Promise.allSettled(testIndices.map((idx) => esClient.indices.delete({ index: idx })));
   }
 

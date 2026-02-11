@@ -23,12 +23,25 @@ export const POSTGRES_SOURCE_CONNECTOR: ConnectorConfig = {
 export const ELASTICSEARCH_SINK_CONNECTOR: ConnectorConfig = {
   name: 'elasticsearch-sink',
   config: {
-    'connector.class': 'io.debezium.connector.jdbc.JdbcSinkConnector',
-    'connection.url': 'jdbc:elasticsearch://elasticsearch:9200',
-    'topics.regex': 'dbz.public.*',
-    'insert.mode': 'upsert',
-    'primary.key.mode': 'record_key',
-    'primary.key.fields': 'id',
+    'connector.class': 'io.confluent.connect.elasticsearch.ElasticsearchSinkConnector',
+    'connection.url': 'http://elasticsearch:9200',
+    topics: 'dbz.public.users,dbz.public.orders',
+    'tasks.max': '1',
+    // Transform chain: unwrap Debezium envelope + extract key field for document ID
+    transforms: 'unwrap,extractKey',
+    // 1. Extract only the 'after' payload from Debezium envelope
+    'transforms.unwrap.type': 'io.debezium.transforms.ExtractNewRecordState',
+    'transforms.unwrap.drop.tombstones': 'true',
+    // 2. Extract 'id' from struct key to use as ES document _id
+    'transforms.extractKey.type': 'org.apache.kafka.connect.transforms.ExtractField$Key',
+    'transforms.extractKey.field': 'id',
+    // Use extracted key as document ID for upsert semantics
+    'key.ignore': 'false',
+    // Schema handling
+    'schema.ignore': 'true',
+    // Write behavior
+    'behavior.on.null.values': 'DELETE',
+    'write.method': 'UPSERT',
   },
 };
 
