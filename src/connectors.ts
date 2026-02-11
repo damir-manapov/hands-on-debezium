@@ -45,6 +45,24 @@ export const ELASTICSEARCH_SINK_CONNECTOR: ConnectorConfig = {
   },
 };
 
+export const REDIS_SINK_CONNECTOR: ConnectorConfig = {
+  name: 'redis-sink',
+  config: {
+    'connector.class': 'com.github.jcustenborder.kafka.connect.redis.RedisSinkConnector',
+    'redis.hosts': 'redis:6379',
+    'redis.database': '0',
+    topics: 'dbz.public.users,dbz.public.orders',
+    'tasks.max': '1',
+    // This connector only accepts String or byte[] for both key and value.
+    // StringConverter reads raw Kafka bytes as UTF-8 strings, which is what we need
+    // since Debezium produces JSON-serialized keys and values.
+    // The Redis key will be the Debezium key JSON (contains the PG id),
+    // and the value will be the full Debezium envelope JSON (contains before/after/source).
+    'key.converter': 'org.apache.kafka.connect.storage.StringConverter',
+    'value.converter': 'org.apache.kafka.connect.storage.StringConverter',
+  },
+};
+
 export const ICEBERG_SINK_CONNECTOR: ConnectorConfig = {
   name: 'iceberg-sink',
   config: {
@@ -100,6 +118,7 @@ export const ICEBERG_SINK_CONNECTOR: ConnectorConfig = {
 export const DEBEZIUM_URL = 'http://localhost:8083';
 export const ELASTICSEARCH_SINK_URL = 'http://localhost:8084';
 export const ICEBERG_SINK_URL = 'http://localhost:8085';
+export const REDIS_SINK_URL = 'http://localhost:8086';
 
 export async function createConnector(
   baseUrl: string,

@@ -9,6 +9,8 @@ export {
   ICEBERG_SINK_CONNECTOR,
   ICEBERG_SINK_URL,
   POSTGRES_SOURCE_CONNECTOR,
+  REDIS_SINK_CONNECTOR,
+  REDIS_SINK_URL,
   waitForConnectorRunning,
 } from './connectors.js';
 export type { DbConfig, Order, User } from './db.js';
@@ -31,3 +33,5 @@ export {
   resetTrinoClient,
   TRINO_CONFIG,
 } from './trino.js';
+
+export { createRedisClient } from './redis.js';

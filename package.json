@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@elastic/elasticsearch": "^8.19.1",
+    "ioredis": "^5.9.2",
     "postgres": "^3.4.8",
     "trino-client": "^0.2.9"
   },

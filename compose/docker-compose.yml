@@ -20,6 +20,10 @@ services:
         condition: service_healthy
       elasticsearch-sink:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      redis-sink:
+        condition: service_healthy
     command: ["echo", "All services are ready"]
 
   postgres:
@@ -238,8 +242,47 @@ services:
       timeout: 10s
       retries: 20
 
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis-sink:
+    build:
+      context: ./redis-sink
+      dockerfile: Dockerfile
+    depends_on:
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8086:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: 4
+      CONFIG_STORAGE_TOPIC: redis_sink_configs
+      OFFSET_STORAGE_TOPIC: redis_sink_offsets
+      STATUS_STORAGE_TOPIC: redis_sink_statuses
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/connectors || exit 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
 volumes:
   postgres-data:
   kafka-data:
   minio-data:
   elasticsearch-data:
+  redis-data:
