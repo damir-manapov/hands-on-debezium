@@ -1,6 +1,6 @@
 # Apache Iceberg Kafka Connect sink
 # Using Confluent Kafka Connect base with official Apache Iceberg connector from Maven
-FROM confluentinc/cp-kafka-connect:7.8.0
+FROM confluentinc/cp-kafka-connect:8.1.1
 
 # Download Apache Iceberg Kafka Connect runtime JAR from Maven Central
 # This is the official Apache Iceberg connector (donated by Tabular)
