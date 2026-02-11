@@ -19,7 +19,8 @@
         "noExplicitAny": "error"
       },
       "complexity": {
-        "noUselessTypeConstraint": "error"
+        "noUselessTypeConstraint": "error",
+        "useLiteralKeys": "off"
       },
       "style": {
         "noNonNullAssertion": "warn",
