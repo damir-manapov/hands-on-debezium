@@ -60,28 +60,21 @@ describe('Debezium CDC', () => {
       expect(config['table.include.list']).toBe('public.users,public.orders');
       expect(config['plugin.name']).toBe('pgoutput');
     });
-
-    it('should use pgoutput logical decoding plugin', async () => {
-      const response = await fetch(
-        `${DEBEZIUM_URL}/connectors/${POSTGRES_SOURCE_CONNECTOR.name}/config`
-      );
-      const config = (await response.json()) as Record<string, string>;
-      expect(config['plugin.name']).toBe('pgoutput');
-    });
   });
 
   describe('Kafka topics', () => {
     it('should create CDC topics for monitored tables', async () => {
       // Debezium creates topics with pattern: <topic.prefix>.<schema>.<table>
-      const response = await fetch(`${DEBEZIUM_URL}/connectors/${POSTGRES_SOURCE_CONNECTOR.name}`);
+      const response = await fetch(
+        `${DEBEZIUM_URL}/connectors/${POSTGRES_SOURCE_CONNECTOR.name}/topics`
+      );
       expect(response.ok).toBe(true);
 
-      // Verify topics exist by consuming from them via the Kafka REST proxy
-      // or by checking Kafka directly. Since we don't have a Kafka REST proxy,
-      // we verify indirectly: the sink connectors subscribe to these topics,
-      // and if the source connector is RUNNING, the topics must exist.
-      const status = await getConnectorStatus(DEBEZIUM_URL, POSTGRES_SOURCE_CONNECTOR.name);
-      expect(status.connector.state).toBe('RUNNING');
+      const body = (await response.json()) as Record<string, { topics: string[] }>;
+      const topics = body[POSTGRES_SOURCE_CONNECTOR.name]?.topics ?? [];
+
+      expect(topics).toContain('dbz.public.users');
+      expect(topics).toContain('dbz.public.orders');
     });
   });
 

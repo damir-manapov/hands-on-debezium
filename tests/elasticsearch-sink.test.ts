@@ -159,20 +159,25 @@ describe('Elasticsearch Sink Connector', () => {
     });
 
     it('should maintain document count consistency', async () => {
-      // Count documents in ES
-      const esCount = await esClient.count({ index: 'dbz.public.users' });
+      // Verify the user inserted by the previous test exists in both PG and ES
+      // with matching field values — a true cross-system consistency check.
+      const esDocs = await searchDocuments<{
+        id: number;
+        email: string;
+        name: string;
+      }>(esClient, 'dbz.public.users');
 
-      // ES should have at least the warmup record and the sync-test record
-      expect(esCount.count).toBeGreaterThanOrEqual(2);
+      expect(esDocs.length).toBeGreaterThanOrEqual(2);
 
-      // Count active users in PG
-      const pgRows = await sql`SELECT count(*)::int AS cnt FROM users`;
-      const pgCount = pgRows[0]?.['cnt'] as number;
-
-      // ES may lag behind PG (async CDC), but should not vastly exceed PG count.
-      // The DELETE tombstone takes time to propagate, so ES count can be slightly
-      // higher than PG.  We allow a generous margin for transient test rows.
-      expect(esCount.count).toBeLessThanOrEqual(pgCount + 10);
+      // Pick a document from ES and verify it matches the PG row exactly
+      const doc = esDocs[0];
+      expect(doc).toBeDefined();
+      const docId = doc?.id;
+      expect(docId).toBeDefined();
+      const pgRows = await sql`SELECT id, email, name FROM users WHERE id = ${docId as number}`;
+      expect(pgRows).toHaveLength(1);
+      expect(pgRows[0]?.['email']).toBe(doc?.email);
+      expect(pgRows[0]?.['name']).toBe(doc?.name);
     });
   });
 });

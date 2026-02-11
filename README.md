@@ -76,6 +76,7 @@ A hands-on project for learning Debezium Change Data Capture (CDC) - syncing Pos
 | PostgreSQL    | 5432  | `localhost:5432`             |
 | Kafka         | 9092  | `localhost:9092`             |
 | Debezium      | 8083  | `http://localhost:8083`      |
+| ES Sink       | 8084  | `http://localhost:8084`      |
 | Iceberg Sink  | 8085  | `http://localhost:8085`      |
 | MinIO Console | 9001  | `http://localhost:9001`      |
 | MinIO API     | 9000  | `http://localhost:9000`      |
@@ -88,6 +89,7 @@ A hands-on project for learning Debezium Change Data Capture (CDC) - syncing Pos
 ```
 ├── compose/
 │   ├── docker-compose.yml # Docker Compose configuration
+│   ├── elasticsearch-sink/# ES sink connector (Confluent kafka-connect-elasticsearch)
 │   ├── iceberg-sink/      # Iceberg sink connector (built from source)
 │   ├── postgres-init/     # PostgreSQL initialization scripts
 │   └── trino/
@@ -101,8 +103,9 @@ A hands-on project for learning Debezium Change Data Capture (CDC) - syncing Pos
 │   ├── trino.ts           # Trino query utilities
 │   └── index.ts           # Main exports
 └── tests/
-    ├── debezium.test.ts       # Debezium connector lifecycle tests
-    ├── elasticsearch.test.ts  # Elasticsearch operations tests
+    ├── debezium.test.ts           # Debezium source connector tests
+    ├── elasticsearch.test.ts      # Elasticsearch operations tests
+    ├── elasticsearch-sink.test.ts # ES sink CDC pipeline tests
     ├── iceberg-sink.test.ts   # Iceberg sink CDC pipeline tests
     └── trino-iceberg.test.ts  # Trino/Iceberg integration tests
 ```
