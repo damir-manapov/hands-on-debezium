@@ -25,7 +25,7 @@ export const ELASTICSEARCH_SINK_CONNECTOR: ConnectorConfig = {
   config: {
     'connector.class': 'io.confluent.connect.elasticsearch.ElasticsearchSinkConnector',
     'connection.url': 'http://elasticsearch:9200',
-    topics: 'dbz.public.users,dbz.public.orders',
+    'topics.regex': 'dbz\\.public\\.(users|orders)',
     'tasks.max': '1',
     // Transform chain: unwrap Debezium envelope + extract key field for document ID
     transforms: 'unwrap,extractKey',
@@ -51,7 +51,7 @@ export const REDIS_SINK_CONNECTOR: ConnectorConfig = {
     'connector.class': 'com.github.jcustenborder.kafka.connect.redis.RedisSinkConnector',
     'redis.hosts': 'redis:6379',
     'redis.database': '0',
-    topics: 'dbz.public.users,dbz.public.orders',
+    'topics.regex': 'dbz\\.public\\.(users|orders)',
     'tasks.max': '1',
     // Transform chain: extract PG id from Debezium struct key → cast to string
     // This gives clean Redis keys like "123" for direct GET lookups.
